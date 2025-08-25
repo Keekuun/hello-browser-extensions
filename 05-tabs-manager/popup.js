@@ -27,13 +27,82 @@ for (const tab of tabs) {
 
     elements.add(element);
 }
+
+let isGrouped = false; // 跟踪当前分组状态
+
 document.querySelector('ul').append(...elements);
 
 const button = document.querySelector('button');
 button.addEventListener('click', async () => {
+    if(isGrouped) {
+        await showNotification('Tabs have been ungrouped');
+        return;
+    }
     const tabIds = tabs.map(({ id }) => id);
     if (tabIds.length) {
         const group = await chrome.tabs.group({ tabIds });
-        await chrome.tabGroups.update(group, { title: 'DOCS' });
+        await chrome.tabGroups.update(group, { title: 'Google Dev Docs' });
+    }
+    checkInitialGroupState()
+});
+
+const ungroupBtn = document.querySelector('.ungroup-btn');
+ungroupBtn.addEventListener('click', async () => {
+    if(!isGrouped) {
+        await showNotification('Tabs have been ungrouped');
+        return;
+    }
+    const tabIds = tabs.map(({ id }) => id);
+    if (tabIds.length) {
+        await chrome.tabs.ungroup(tabIds);
+    }
+    checkInitialGroupState()
+});
+
+const toggleBtn = document.querySelector('.toggle-btn');
+
+toggleBtn.addEventListener('click', async () => {
+    const tabIds = tabs.map(({ id }) => id);
+
+    if (tabIds.length) {
+        if (isGrouped) {
+            // 如果已分组，执行取消分组
+            await chrome.tabs.ungroup(tabIds);
+            toggleBtn.textContent = 'Toggle(Group Tabs)';
+        } else {
+            // 如果未分组，执行分组
+            const group = await chrome.tabs.group({ tabIds });
+            await chrome.tabGroups.update(group, { title: 'Google Dev Docs' });
+            toggleBtn.textContent = 'Toggle(Ungroup Tabs)';
+        }
+        isGrouped = !isGrouped; // 切换状态
     }
 });
+
+// 显示通知的函数
+async function showNotification(message) {
+    try {
+        await chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'images/icon-48.png', // 确保你有这个图标文件
+            title: 'Tab Group Manager',
+            message: message
+        });
+    } catch (error) {
+        console.error('Failed to show notification:', error);
+        window.alert(message)
+    }
+}
+
+
+// 初始检查分组状态
+async function checkInitialGroupState() {
+    const tabIds = tabs.map(({ id }) => id);
+    if (tabIds.length === 0) return;
+
+    const firstTab = await chrome.tabs.get(tabIds[0]);
+    isGrouped = firstTab.groupId > 0;
+    toggleBtn.textContent = isGrouped ? 'Toggle(Ungroup Tabs)' : 'Toggle(Group Tabs)';
+}
+// 调用初始检查
+checkInitialGroupState();
