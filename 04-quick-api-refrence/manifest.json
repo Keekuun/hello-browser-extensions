@@ -13,7 +13,7 @@
   },
   "minimum_chrome_version": "102",
   "omnibox": {
-    "keyword": "api"
+    "keyword": "caniuse"
   },
   "permissions": ["alarms", "storage"],
   "content_scripts": [
