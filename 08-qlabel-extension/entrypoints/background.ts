@@ -25,7 +25,8 @@ export default defineBackground(() => {
       return result.processedImageUrl; // 假设服务器返回处理后的图片URL
     } catch (error) {
       console.error('处理数据时出错:', error);
-      browser.storage.local.set({ [`processed_${data.taskId}`]: 'http://localhost:63342/hello-browser-extensions/material/qlabel-files/qlabel/f9aca0bde6ac0a05f9635ae01f228657_b432a7ca3f05f6d285a50ec6ff3a1109.jpeg' });
+      const testImg = "https://th.bing.com/th/id/R.8e13b5235129bf3759c350822d787d27?rik=O%2bKS%2bC1l%2f%2b%2fHzA&riu=http%3a%2f%2fseopic.699pic.com%2fphoto%2f50057%2f5834.jpg_wh1200.jpg&ehk=YSJfy459n%2fmU8xTzi31ahDbFmge0TteZDiWwoEbWDvg%3d&risl=&pid=ImgRaw&r=0"
+      browser.storage.local.set({ [`processed_${data.taskId}`]: testImg });
       throw error;
     }
   }

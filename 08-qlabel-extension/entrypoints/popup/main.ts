@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import {showToast} from "@/components/toast";
 
 document.addEventListener('DOMContentLoaded', () => {
   // 获取DOM元素
@@ -40,16 +41,30 @@ document.addEventListener('DOMContentLoaded', () => {
     originalImageEl.src = data.imageUrl;
     instructionTextEl.textContent = data.text;
 
-    // 看是否已经生成过了
-    browser.storage.local.get(`processed_${data.taskId}`).then(result => {
-      console.log('result:', result)
-      const processedUrl = result[`processed_${data.taskId}`];
-      if (processedUrl) {
-        processedImageEl.src = processedUrl;
-        downloadLinkEl.href = processedUrl;
-        resultSectionEl.style.display = 'block';
-      }
-    });
+    getEffectImage(data.taskId)
+  }
+
+  // 获取效果图片
+  let timer: string | number | NodeJS.Timeout | undefined;
+  function getEffectImage(taskId: string) {
+    if(timer) {
+      clearInterval(timer)
+      timer = undefined;
+    }
+    timer = setInterval(() => {
+      // 看是否已经生成过了
+      browser.storage.local.get(`processed_${taskId}`).then(result => {
+        console.log('result:', result)
+        const processedUrl = result[`processed_${taskId}`];
+        if (processedUrl) {
+          clearInterval(timer);
+          timer = undefined;
+          processedImageEl.src = processedUrl;
+          downloadLinkEl.href = processedUrl;
+          resultSectionEl.style.display = 'block';
+        }
+      });
+    }, 500)
   }
 
   // 去对比
@@ -57,7 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = instructionTextEl.textContent || '';
     const originalUrl = originalImageEl.src;
     const processedUrl = processedImageEl.src || originalUrl; // 如果没有处理结果，则用原图
-    window.open(`/img-pk.html?text=${encodeURIComponent(text)}&r_img=${encodeURIComponent(originalUrl)}&g_img=${encodeURIComponent(processedUrl)}`, '_blank');
+
+    // 打开画中画 90%
+    browser.windows.create({
+      width: window.screen.availWidth,
+      height: window.screen.availHeight - 80,
+      left: 0,
+      top: 0,
+      type: 'popup',
+      url: '/img-pk.html?text=' + encodeURIComponent(text) + '&r_img=' + encodeURIComponent(originalUrl) + '&g_img=' + encodeURIComponent(processedUrl),
+    })
   });
 
   // 处理按钮点击事件
@@ -72,8 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     processBtn.disabled = true;
-    processBtn.textContent = '处理中...';
+    processBtn.textContent = '处理中..';
 
+    showToast('服务器努力处理中，请稍后..', 'info');
     // 发送数据到背景脚本处理
     browser.runtime.sendMessage({
       type: 'PROCESS_DATA',
@@ -85,9 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         processedImageEl.src = response.processedUrl;
         downloadLinkEl.href = response.processedUrl;
         resultSectionEl.style.display = 'block';
+        showToast('处理成功，你可以通过图片对比查看效果', 'success');
       } else {
-        alert('处理失败: ' + (response.error || '未知错误'));
+        showToast('处理失败: ' + (response.error || '未知错误'), 'error');
       }
+    }).catch(error => {
+      processBtn.disabled = false;
+      processBtn.textContent = '处理图片';
+      showToast('处理失败: ' + error.message, 'error');
     });
   });
 });

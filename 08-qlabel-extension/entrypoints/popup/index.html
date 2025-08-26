@@ -7,23 +7,22 @@
 </head>
 <body>
 <div class="container">
-  <h1>QLabel 助手</h1>
+  <h1 class="title">QLabel 助手</h1>
 
   <div class="status" id="status">加载中...</div>
 
   <div class="section" id="originalData" style="display: none;">
-    <h2>任务ID</h2>
+    <h2 class="section-title">任务ID</h2>
     <span id="taskId" class="taskId"></span>
-    <h2>原图</h2>
-    <img id="originalImage" class="image" />
-
-    <h2>指令</h2>
+    <h2 class="section-title">指令</h2>
     <div id="instructionText" class="text-content"></div>
+    <h2 class="section-title">原图</h2>
+    <img id="originalImage" class="image" />
     <button id="processBtn">点击处理</button>
   </div>
 
   <div class="section" id="resultSection" style="display: none;">
-    <h2>效果图</h2>
+    <h2 class="section-title">效果图</h2>
     <img id="processedImage" class="image"  alt="原图" />
     <a id="downloadLink" class="download-btn" download>下载效果图</a>
     <button id="pkImgBtn">图片对比</button>
