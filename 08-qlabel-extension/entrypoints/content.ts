@@ -22,7 +22,7 @@ export default defineContentScript({
       const imgUrl = imgElement?.src;
 
       // 当前登陆的用户email在localStorage中
-      const userEmail = localStorage.getItem('userEmail') || 'unknown_user';
+      const userEmail = localStorage.getItem('email') || 'unknown_user';
       console.log(`User: ${userEmail}, Task ID: ${taskId}, Text: ${targetText}, Image URL: ${imgUrl}`);
 
       // 当两个元素都找到时
