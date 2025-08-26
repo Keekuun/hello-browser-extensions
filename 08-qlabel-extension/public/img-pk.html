@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片对比工具</title>
+  <script src="script/tailwindcss.js"></script>
+  <link href="./font-awesome.min.css" rel="stylesheet">
+  <script src="./script/tailwind-config.js"></script>
+  <style type="text/tailwindcss">
+      @layer utilities {
+          .content-auto {
+              content-visibility: auto;
+          }
+
+          .image-container {
+              position: relative;
+              width: 100%;
+              height: 66vh;
+              min-height: 400px;
+              max-height: 700px;
+              overflow: hidden;
+          }
+
+          .image-container-full {
+              width: 100vw;
+              height: 100vh;
+              min-height: 100vh;
+              max-height: 100vh;
+          }
+
+          .image-wrapper {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+          }
+
+          .comparison-slider {
+              position: absolute;
+              height: 100%;
+              width: 50%;
+              overflow: hidden;
+          }
+
+          .slider-handle {
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              right: -15px;
+              width: 30px;
+              cursor: ew-resize;
+              z-index: 30;
+          }
+
+          .slider-icon {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              background-color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+          }
+
+          .keyboard-hint {
+              position: absolute;
+              bottom: 10px;
+              right: 10px;
+              background-color: rgba(0, 0, 0, 0.3);
+              color: white;
+              padding: 8px 16px;
+              border-radius: 16px;
+              font-size: 14px;
+              opacity: 0;
+              transition: opacity 0.3s ease;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+          }
+
+          .image-container:hover .keyboard-hint {
+              opacity: 0.66;
+          }
+
+          .fade-in {
+              animation: fadeIn 0.5s ease-in-out;
+          }
+
+          @keyframes fadeIn {
+              from {
+                  opacity: 0;
+              }
+              to {
+                  opacity: 1;
+              }
+          }
+          .scale-in {
+              animation: scaleIn 0.3s ease-out;
+          }
+
+          @keyframes scaleIn {
+              from {
+                  transform: scale(0.95);
+                  opacity: 0;
+              }
+              to {
+                  transform: scale(1);
+                  opacity: 1;
+              }
+          }
+      }
+
+      /* 目标图片 */
+      #image-container {
+          /* 关键：为 transform 属性添加过渡动画 */
+          transition: background 0.3s;
+
+          /* 关键：提供视觉提示，告诉用户这里可以点击 */
+          cursor: zoom-in;
+      }
+
+      /* 图片被放大时的状态 */
+      #image-container.zoomed {
+          /* 放大到原始尺寸的1.5倍 */
+          transform: scale(1.5);
+          cursor: zoom-out;
+      }
+  </style>
+</head>
+<body class="bg-gray-100 font-inter text-dark min-h-screen flex flex-col">
+<!-- 导航栏 -->
+<nav class="hidden bg-white shadow-md sticky top-0 z-50 transition-all duration-300">
+  <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <i class="fa fa-exchange text-primary text-2xl"></i>
+      <h1 class="text-xl font-bold">图片对比工具</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="theme-toggle" class="hidden p-2 rounded-full hover:bg-gray-200 transition-colors">
+        <i class="fa fa-moon-o text-secondary"></i>
+      </button>
+      <button id="help-button" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+        <i class="fa fa-question-circle text-secondary"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- 主要内容区 -->
+<main class="zen-show flex-grow container mx-auto px-4 py-8">
+  <!-- 图片选择区域 -->
+  <section class="local-img hidden mb-8 bg-white rounded-xl shadow-lg p-6 scale-in">
+    <h2 class="text-xl font-semibold mb-4 flex items-center">
+      <i class="fa fa-picture-o text-primary mr-2"></i>本地图片
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="space-y-4">
+        <label class="block font-medium">原图</label>
+        <div class="flex flex-col space-y-3">
+          <div class="relative">
+            <input type="file" id="image1" accept="image/*" class="hidden"/>
+            <button id="select-image1"
+                    class="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center justify-center">
+              <i class="fa fa-upload mr-2"></i>选择原图
+            </button>
+          </div>
+          <div id="image1-preview"
+               class="w-full h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+            <div class="text-center text-gray-400">
+              <i class="fa fa-image text-4xl mb-2"></i>
+              <p>未选择图片</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <label class="block font-medium">效果图</label>
+        <div class="flex flex-col space-y-3">
+          <div class="relative">
+            <input type="file" id="image2" accept="image/*" class="hidden"/>
+            <button id="select-image2"
+                    class="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center justify-center">
+              <i class="fa fa-upload mr-2"></i>选择效果图
+            </button>
+          </div>
+          <div id="image2-preview"
+               class="w-full h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+            <div class="text-center text-gray-400">
+              <i class="fa fa-image text-4xl mb-2"></i>
+              <p>未选择图片</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 图片对比区域 -->
+  <section class="zen-show mb-8 scale-in">
+    <div class="zen-show image-container bg-gray-800 rounded-xl shadow-xl relative">
+      <div id="image-container" class="image-wrapper">
+        <!--        <div id="image1-container" class="absolute inset-0 opacity-100 transition-opacity duration-300">-->
+        <div id="image1-container" class="absolute inset-0 opacity-100">
+          <img id="display-image1" src="" alt="原图" class="w-full h-full object-contain"/>
+          <div
+              class="w-20 text-center absolute right-0 top-0 py-1 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors opacity-80">
+            原 图
+          </div>
+        </div>
+        <!--        <div id="image2-container" class="absolute inset-0 opacity-0 transition-opacity duration-300">-->
+        <div id="image2-container" class="absolute inset-0 opacity-0">
+          <img id="display-image2" src="" alt="效果图" class="w-full h-full object-contain"/>
+          <div
+              class="w-20 text-center absolute right-0 top-0 py-1 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors opacity-80">
+            效果图
+          </div>
+        </div>
+
+        <!-- 拖拽对比组件 -->
+        <div id="comparison-slider" class="comparison-slider hidden">
+          <img id="slider-image" src="" alt="效果图" class="w-full h-full object-contain"/>
+          <div class="slider-handle bg-primary/50 hover:bg-primary/70">
+            <div class="slider-icon">
+              <i class="fa fa-arrows-h text-primary"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 键盘提示 -->
+        <div class="keyboard-hint">
+          <span class="flex items-center">
+              <i class="fa fa-arrow-left mr-1"></i> 原图
+          </span>
+          <span class="mx-2">|</span>
+          <span class="flex items-center">
+                            效果图 <i class="fa fa-arrow-right ml-1"></i>
+                        </span>
+          <span class="mx-2">|</span>
+          <span class="flex items-center">
+                            <i class="fa fa-mouse-pointer mr-1"></i> 滚轮切换
+                        </span>
+          <span class="mx-2">|</span>
+          <div id="zen-show" class="px-4 cursor-pointer text-center">
+            <i class="fa fa-expand text-white"></i> 退出全屏
+          </div>
+          <div id="zen-hide" class="hidden px-4 cursor-pointer text-center">
+            <i class="fa fa-compress  text-white"></i> 进入全屏
+          </div>
+          <div id="text-hide" class="hidden px-4 cursor-pointer text-center mt-2">
+            <i class="fa fa-eye  text-white"></i> 显示提示词
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 加载状态 -->
+      <div id="loading-overlay" class="absolute inset-0 bg-black/70 flex items-center justify-center hidden">
+        <div class="text-center">
+          <div
+              class="inline-block w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-white text-lg">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 对比模式选择 -->
+  <section id="action-btns" class="hidden mb-8 bg-white rounded-xl shadow-lg p-6 scale-in">
+    <h2 class="text-xl font-semibold mb-4 flex items-center justify-between">
+      <div>
+        <i class="fa fa-sliders text-primary mr-2"></i>图片对比
+      </div>
+    </h2>
+    <div class="flex flex-wrap gap-4">
+      <button id="mode-toggle" class="py-2 px-6 bg-primary text-white rounded-lg flex items-center hidden">
+        <i class="fa fa-sliders mr-2"></i>拖拽对比模式
+      </button>
+      <button id="reset-view"
+              class="py-2 px-6 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors flex items-center">
+        <i class="fa fa-refresh mr-2"></i>重置视图
+      </button>
+
+      <div class="flex flex-wrap gap-4">
+        <button id="prev-image"
+                class="py-2 px-6 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors flex items-center">
+          <i class="fa fa-arrow-left mr-2"></i>原图
+        </button>
+        <button id="next-image"
+                class="py-2 px-6 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center">
+          效果图<i class="fa fa-arrow-right ml-2"></i>
+        </button>
+        <!--        <div class="ml-auto flex items-center space-x-2">-->
+        <div class="ml-auto flex items-center space-x-2 hidden">
+          <span class="text-gray-600">图片切换速度:</span>
+          <input type="range" id="transition-speed" min="0" max="1000" value="200" class="w-32 accent-primary">
+          <span id="speed-value" class="text-gray-600">200ms</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 页脚 -->
+<footer class="bg-dark text-white py-6 hidden">
+  <div class="container mx-auto px-4 text-center">
+    <p>© 2025 图片对比工具 | 一个高效的视觉对比解决方案</p>
+    <div class="flex justify-center mt-4 space-x-4">
+      <a href="#" class="text-gray-400 hover:text-white transition-colors">
+        <i class="fa fa-github text-xl"></i>
+      </a>
+      <a href="#" class="text-gray-400 hover:text-white transition-colors">
+        <i class="fa fa-twitter text-xl"></i>
+      </a>
+      <a href="#" class="text-gray-400 hover:text-white transition-colors">
+        <i class="fa fa-linkedin text-xl"></i>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<!-- 帮助模态框 -->
+<div id="help-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden fade-in">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="p-6 border-b">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xl font-bold">使用帮助</h3>
+        <button id="close-help" class="text-gray-500 hover:text-gray-700">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+    </div>
+    <div class="p-6">
+      <div class="space-y-6">
+        <div>
+          <h4 class="font-semibold text-lg mb-2">基本操作</h4>
+          <ul class="space-y-2">
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>点击"选择原图"和"选择效果图"按钮上传需要对比的图片</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>使用"原图"和"效果图"按钮在两张图片之间切换</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>通过鼠标滚轮也可以在两张图片之间切换</span>
+            </li>
+          </ul>
+        </div>
+        <div class="hidden">
+          <h4 class="font-semibold text-lg mb-2">拖拽对比模式</h4>
+          <ul class="space-y-2">
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>点击"拖拽对比模式"按钮切换到拖拽对比模式</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>在拖拽对比模式下，可以拖动中间的滑块来调整两张图片的显示比例</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>再次点击"拖拽对比模式"按钮可以切换回普通切换模式</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-lg mb-2">其他功能</h4>
+          <ul class="space-y-2">
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>使用"重置视图"按钮可以将图片显示恢复到初始状态</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>拖动"图片切换速度"滑块可以调整图片切换的动画时长</span>
+            </li>
+            <li class="flex items-start">
+              <i class="fa fa-check-circle text-primary mt-1 mr-2"></i>
+              <span>按ESC可以退出全屏模式</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="help-modal-footer p-6 border-t bg-gray-50">
+      <button id="close-help-btn"
+              class="py-2 px-6 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors">
+        我知道了
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="./script/main.js"></script>
+</body>
+</html>
+
