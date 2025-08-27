@@ -8,12 +8,9 @@ export default defineConfig({
     version: '1.0',
     permissions: ['activeTab', 'storage'],
     host_permissions: ['https://qlabel.tencent.com/workbench/tasks/*', "http://localhost:63342/*"],
-    icons: {
-      16: '/icon.png',
-      24: '/icon.png',
-      48: '/icon.png',
-      96: '/icon.png',
-      128: '/icon.png',
-    },
+  },
+  modules: ['@wxt-dev/auto-icons'],
+  autoIcons: {
+    developmentIndicator: 'overlay'
   }
 });
