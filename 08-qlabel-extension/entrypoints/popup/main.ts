@@ -2,6 +2,9 @@ import { browser } from 'wxt/browser';
 import {showToast} from "@/components/toast";
 import {downloadImage} from "@/utils";
 
+// 处理结果
+const resultData = {}
+
 document.addEventListener('DOMContentLoaded', () => {
   // 获取DOM元素
   const statusEl = document.getElementById('status')!;
@@ -30,10 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("[In content script], received message from background script: ", message);
     if(message.type === 'TASK_RESULT') {
       if(message.success) {
-        showToast('处理成功，你可以通过图片对比查看效果', 'success');
         if(message.data?.image_url) {
+          Object.assign(resultData, message.data)
+          console.log('resultData', resultData)
           displayProcessedImg(message.data.image_url);
           unlockProcessBtn()
+          showToast('处理成功，你可以通过图片对比查看效果', 'success');
         }
       } else {
         showToast('处理失败，请稍后再试', 'error');
@@ -48,12 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
   browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
     const tab = tabs[0];
     if (!tab.id) return;
+    displayProcessedImg(resultData.image_url)
     // 从 content script 获取数据
     browser.tabs.sendMessage(tab.id, { type: 'GET_DATA' }).then(data => {
+      console.log('[Popup GET_DATA] Received data from content script:', data);
       if (data) {
        // merge data to targetData
         Object.assign(targetData, data)
         displayData();
+        processImg()
       } else {
         statusEl.textContent = '未找到数据，请确保在正确的页面上并刷新重试';
       }
@@ -77,9 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 显示处理后的图片
   function displayProcessedImg(processedUrl: string) {
+    if(!processedUrl) return
     processedImageEl.src = processedUrl;
     downloadLinkEl.href = processedUrl;
     resultSectionEl.style.display = 'block';
+
+    setTimeout(() => {
+      pkImgBtn.scrollIntoView()
+    }, 500)
   }
 
   function lockProcessBtn() {
@@ -109,8 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
   });
 
-  // 处理按钮点击事件
-  processBtn.addEventListener('click', () => {
+  function processImg() {
     const text = targetData.text
     const imageUrl = targetData.imageUrl;
 
@@ -121,14 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     lockProcessBtn()
 
-    showToast('服务器努力处理中，请稍后..', 'info');
+    showToast('图片处理中，请稍后...', 'info');
 
     // 发送数据到background脚本处理
     browser.runtime.sendMessage({
       type: 'PROCESS_DATA',
       data: targetData,
     })
-  });
+  }
+
+  // 处理按钮点击事件
+  processBtn.addEventListener('click', processImg);
 
   downloadLinkEl.addEventListener('click', () => {
     downloadImage(downloadLinkEl.href, `processed_${targetData.taskId}.png`);
