@@ -67,6 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
        // merge data to targetData
         Object.assign(targetData, data)
         displayData();
+        // 清理一下缓存
+        cleanupExpiredCache();
       } else {
         statusEl.textContent = '未找到数据，请确保在正确的页面上并刷新重试';
       }
@@ -78,8 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 显示DOM数据
   function displayData() {
-    console.log('[Popup] Display data:', targetData);
-
     statusEl.style.display = 'none';
     originalDataEl.style.display = 'block';
 
@@ -191,13 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (keysToDelete.length > 0) {
         await browser.storage.local.remove(keysToDelete);
-        console.log(`自动清理了 ${keysToDelete.length} 个过期缓存项`);
+        console.warn(`自动清理了 ${keysToDelete.length} 个过期缓存项`);
       }
     } catch (error) {
-      console.error('自动清理缓存失败:', error);
+      console.warn('自动清理缓存失败:', error);
     }
   }
-
-  // 在 popup 打开时执行一次清理
-  cleanupExpiredCache();
 });

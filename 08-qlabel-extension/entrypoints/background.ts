@@ -93,8 +93,6 @@ export default defineBackground(() => {
           return;
         }
 
-        console.log("[polling result duration]", new Date().toLocaleTimeString())
-
         // 调用API查询任务状态
         const result = await getImgTaskResult(taskId);
 
@@ -181,7 +179,6 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onConnect.addListener((port) => {
-    console.log("Background script connected to port:", port.name);
     if (port.name === 'POPUP_BG_CHANNEL') {
       backgroundPort = port;
     }
