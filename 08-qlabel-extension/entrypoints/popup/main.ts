@@ -35,7 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if(message.success) {
         if(message.data?.image_url) {
           Object.assign(resultData, message.data)
-          console.log('resultData', resultData)
+          // 缓存结果到 localStorage
+          browser.storage.local.set({[`processed_img_${targetData.taskId}`]: {
+              image_url: message.data.image_url,
+              timestamp: Date.now(),
+              taskId: targetData.taskId
+            }});
+
           displayProcessedImg(message.data.image_url);
           unlockProcessBtn()
           showToast('处理成功，你可以通过图片对比查看效果', 'success');
@@ -61,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
        // merge data to targetData
         Object.assign(targetData, data)
         displayData();
-        processImg()
       } else {
         statusEl.textContent = '未找到数据，请确保在正确的页面上并刷新重试';
       }
@@ -81,6 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
     taskIdEl.textContent = targetData.taskId;
     originalImageEl.src = targetData.imageUrl;
     instructionTextEl.textContent = targetData.text;
+
+
+    browser.storage.local.get(`processed_img_${targetData.taskId}`).then(result => {
+      if (result[`processed_img_${targetData.taskId}`]?.image_url) {
+        displayProcessedImg(result[`processed_img_${targetData.taskId}`].image_url)
+      } else {
+        processImg()
+      }
+    });
   }
 
   // 显示处理后的图片
@@ -148,4 +162,42 @@ document.addEventListener('DOMContentLoaded', () => {
   downloadLinkEl.addEventListener('click', () => {
     downloadImage(downloadLinkEl.href, `processed_${targetData.taskId}.png`);
   })
+
+  // 定期清理过期缓存（例如：超过7天的数据）
+  async function cleanupExpiredCache() {
+    try {
+      const allData = await browser.storage.local.get();
+      const now = Date.now();
+      const isDev = import.meta.env.DEV;
+      const expireTime = isDev ? 30 * 1000 : 7 * 24 * 60 * 60 * 1000; // 7天毫秒数
+      const keysToDelete: string[] = [];
+
+      // 检查每个缓存项的时间戳
+      Object.keys(allData).forEach(key => {
+        // 不删除当前任务的数据
+        if (key === 'currentTask') {
+          return;
+        }
+        if (!key.includes(targetData.taskId) && key.startsWith('processed_')) {
+          const data = allData[key];
+          // 删除过期的缓存项
+          if (data && typeof data === 'object' && data.timestamp) {
+            if (now - data.timestamp > expireTime) {
+              keysToDelete.push(key);
+            }
+          }
+        }
+      });
+
+      if (keysToDelete.length > 0) {
+        await browser.storage.local.remove(keysToDelete);
+        console.log(`自动清理了 ${keysToDelete.length} 个过期缓存项`);
+      }
+    } catch (error) {
+      console.error('自动清理缓存失败:', error);
+    }
+  }
+
+  // 在 popup 打开时执行一次清理
+  cleanupExpiredCache();
 });

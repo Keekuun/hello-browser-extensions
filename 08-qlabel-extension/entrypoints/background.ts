@@ -5,9 +5,14 @@ export default defineBackground(() => {
   let backgroundPort: any = null;
 
   // 服务器处理函数
-  // 1.生成任务
+  // 生成任务
   async function processTaskId(data: any) {
     try {
+      const result = await browser.storage.local.get(`processed_taskId_${data.taskId}`);
+      if (result[`processed_taskId_${data.taskId}`]?.taskId) {
+        return result[`processed_taskId_${data.taskId}`].taskId;
+      }
+
       const response = await genImgTaskId({
         image_url: data.imageUrl,
         prompt: data.text,
@@ -20,61 +25,13 @@ export default defineBackground(() => {
         throw new Error(`服务器响应错误: ${response.message}`);
       }
       const taskId = response.data.task_id;
-      browser.storage.local.set({[`processed_${data.taskId}`]: taskId});
+      browser.storage.local.set({[`processed_taskId_${data.taskId}`]: {
+          taskId: taskId,
+          timestamp: Date.now(),
+        }});
       return taskId;
     } catch (error) {
       console.error('生成任务失败:', error);
-      throw error;
-    }
-  }
-
-  // 2.轮训结果
-  async function processTaskResult(qlabelData: any) {
-    console.log("[process task result]", qlabelData)
-    console.log("[process task result duration]", new Date().toLocaleTimeString())
-    try {
-      let taskId: string | null = '';
-      if (qlabelData?.taskId) {
-        const result = await browser.storage.local.get(`processed_id_${qlabelData.taskId}`);
-        taskId = result[`processed_${taskId}`];
-      }
-
-      // 如果没有生成过，则生成
-      if (!taskId) {
-        taskId = await processTaskId(qlabelData)
-      }
-
-      const response = await getImgTaskResult(taskId);
-
-      // 任务成功
-      if (response?.data?.status === 'completed') {
-        console.log('处理后的图片URL:', response.data.result_url);
-        browser.storage.local.set({[`processed_url_${qlabelData.taskId}`]: response.data.result_url});
-        return {
-          url: response.data.result_url,
-          status: response.data.status,
-          message: '任务已完成'
-        };
-      }
-      // 任务失败
-      if (response?.data?.status === 'failed') {
-        // 清除 taskId
-        browser.storage.local.remove(`processed_id_${qlabelData.taskId}`);
-        browser.storage.local.remove(`processed_url_${qlabelData.taskId}`);
-        return {
-          url: '',
-          status: 'failed',
-          message: '任务失败请重试'
-        };
-      }
-      // 其他状态，继续轮询
-      // 等待2秒后继续获取结果
-      // todo
-      setTimeout(() => {
-        processTaskResult(qlabelData)
-      }, 2000)
-    } catch (error) {
-      console.error('处理数据时出错:', error);
       throw error;
     }
   }
