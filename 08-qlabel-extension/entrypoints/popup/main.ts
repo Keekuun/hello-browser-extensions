@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import {showToast} from "@/components/toast";
+import {downloadImage} from "@/utils";
 
 document.addEventListener('DOMContentLoaded', () => {
   // 获取DOM元素
@@ -14,15 +15,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const processedImageEl = document.getElementById('processedImage') as HTMLImageElement;
   const downloadLinkEl = document.getElementById('downloadLink') as HTMLAnchorElement;
 
+  // 从 content script 获取目标数据
+  const targetData = {
+    user: '',
+    taskId: Date.now().toString(),
+    text: '',
+    imageUrl: '',
+    timestamp: Date.now()
+  }
+
+  // 和 background script 建立消息通道
+  const backgroundPort = browser.runtime.connect({ name: 'POPUP_BG_CHANNEL' });
+  backgroundPort.onMessage.addListener((message) => {
+    console.log("[In content script], received message from background script: ", message);
+    if(message.type === 'TASK_RESULT') {
+      if(message.success) {
+        showToast('处理成功，你可以通过图片对比查看效果', 'success');
+        if(message.data?.image_url) {
+          displayProcessedImg(message.data.image_url);
+          unlockProcessBtn()
+        }
+      } else {
+        showToast('处理失败，请稍后再试', 'error');
+        unlockProcessBtn()
+      }
+    }
+  });
+
+  window.addEventListener('unload', backgroundPort.disconnect)
+
   // 获取当前标签页
   browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
     const tab = tabs[0];
     if (!tab.id) return;
-
-    // 从内容脚本获取数据
+    // 从 content script 获取数据
     browser.tabs.sendMessage(tab.id, { type: 'GET_DATA' }).then(data => {
       if (data) {
-        displayData(data);
+       // merge data to targetData
+        Object.assign(targetData, data)
+        displayData();
       } else {
         statusEl.textContent = '未找到数据，请确保在正确的页面上并刷新重试';
       }
@@ -32,42 +63,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 显示已经处理的数据
-  function displayData(data: { text: string, imageUrl: string, taskId: string }) {
+  // 显示DOM数据
+  function displayData() {
+    console.log('[Popup] Display data:', targetData);
+
     statusEl.style.display = 'none';
     originalDataEl.style.display = 'block';
 
-    taskIdEl.textContent = data.taskId;
-    originalImageEl.src = data.imageUrl;
-    instructionTextEl.textContent = data.text;
-
-    getEffectImage(data.taskId)
+    taskIdEl.textContent = targetData.taskId;
+    originalImageEl.src = targetData.imageUrl;
+    instructionTextEl.textContent = targetData.text;
   }
 
-  // 获取效果图片
-  let timer: string | number | NodeJS.Timeout | undefined;
-  function getEffectImage(taskId: string) {
-    if(timer) {
-      clearInterval(timer)
-      timer = undefined;
-    }
-    timer = setInterval(() => {
-      // 看是否已经生成过了
-      browser.storage.local.get(`processed_${taskId}`).then(result => {
-        console.log('result:', result)
-        const processedUrl = result[`processed_${taskId}`];
-        if (processedUrl) {
-          clearInterval(timer);
-          timer = undefined;
-          processedImageEl.src = processedUrl;
-          downloadLinkEl.href = processedUrl;
-          resultSectionEl.style.display = 'block';
-        }
-      });
-    }, 500)
+  // 显示处理后的图片
+  function displayProcessedImg(processedUrl: string) {
+    processedImageEl.src = processedUrl;
+    downloadLinkEl.href = processedUrl;
+    resultSectionEl.style.display = 'block';
   }
 
-  // 去对比
+  function lockProcessBtn() {
+    processBtn.disabled = true;
+    processBtn.textContent = '处理中...';
+  }
+
+  function unlockProcessBtn() {
+    processBtn.disabled = false;
+    processBtn.textContent = '再次处理';
+  }
+
+  // 打开图片对比窗口
   pkImgBtn.addEventListener('click', () => {
     const text = instructionTextEl.textContent || '';
     const originalUrl = originalImageEl.src;
@@ -86,38 +111,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 处理按钮点击事件
   processBtn.addEventListener('click', () => {
-    const text = instructionTextEl.textContent || '';
-    const imageUrl = originalImageEl.src;
-    const taskId = taskIdEl.textContent;
+    const text = targetData.text
+    const imageUrl = targetData.imageUrl;
 
     if (!text || !imageUrl) {
-      alert('没有可处理的数据');
+      showToast('没有可处理的数据', 'info');
       return;
     }
 
-    processBtn.disabled = true;
-    processBtn.textContent = '处理中..';
+    lockProcessBtn()
 
     showToast('服务器努力处理中，请稍后..', 'info');
-    // 发送数据到背景脚本处理
+
+    // 发送数据到background脚本处理
     browser.runtime.sendMessage({
       type: 'PROCESS_DATA',
-    }).then(response => {
-      processBtn.disabled = false;
-      processBtn.textContent = '处理图片';
-
-      if (response.success && response.processedUrl) {
-        processedImageEl.src = response.processedUrl;
-        downloadLinkEl.href = response.processedUrl;
-        resultSectionEl.style.display = 'block';
-        showToast('处理成功，你可以通过图片对比查看效果', 'success');
-      } else {
-        showToast('处理失败: ' + (response.error || '未知错误'), 'error');
-      }
-    }).catch(error => {
-      processBtn.disabled = false;
-      processBtn.textContent = '处理图片';
-      showToast('处理失败: ' + error.message, 'error');
-    });
+      data: targetData,
+    })
   });
+
+  downloadLinkEl.addEventListener('click', () => {
+    downloadImage(downloadLinkEl.href, `processed_${targetData.taskId}.png`);
+  })
 });

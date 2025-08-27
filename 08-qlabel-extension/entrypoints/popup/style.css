@@ -73,6 +73,11 @@ button:focus-visible {
     outline: 4px auto -webkit-focus-ring-color;
 }
 
+button[disabled] {
+    opacity: 0.66;
+    cursor: not-allowed;
+}
+
 @media (prefers-color-scheme: light) {
     :root {
         color: #213547;
