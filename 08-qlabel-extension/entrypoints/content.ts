@@ -13,8 +13,8 @@ export default defineContentScript({
 
     // 目标节点选择器
     const taskIdSelector = 'div.z-level__item.z-header__logo > p > span:nth-child(2)';
-    const targetImgSelector = 'div.upload-annotation[group="原图"] > div.safe-image > img';
-    const targetTextSelector = 'div.text-item[group="编辑指令"] > div.text-container > div.text-content > div[name="编辑指令"]';
+    const targetImgSelector = 'div.upload-annotation[group] > div.safe-image > img';
+    const targetTextSelector = 'div.text-item[group] > div.text-container > div.text-content > div[name]';
 
     // 定期检查元素是否加载完成
     const checkElements = setInterval(() => {
