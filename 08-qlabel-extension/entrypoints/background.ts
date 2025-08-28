@@ -56,8 +56,8 @@ export default defineBackground(() => {
       console.log("轮询结果：", result)
 
       backgroundPort?.postMessage({type: 'TASK_RESULT', success: true, data: result});
-    } catch (error) {
-      backgroundPort?.postMessage({type: 'TASK_RESULT',success: false, error: error.message});
+    } catch (error: unknown) {
+      backgroundPort?.postMessage({type: 'TASK_RESULT',success: false, error: '任务处理失败'});
     }
   }
 
@@ -71,7 +71,7 @@ export default defineBackground(() => {
   /**
    * 开始轮询任务状态
    * @param {string} taskId - 任务ID
-   * @param data - 任务数据
+   * @param msgData
    * @param {function} onSuccess - 成功回调
    * @param {function} onError - 失败回调
    * @param {number} [timeout] - 可选自定义超时时间(毫秒)
@@ -168,13 +168,13 @@ export default defineBackground(() => {
     // 获取数据后自动处理
     if (message.type === 'DATA_READY') {
       console.log('[Popup DATA_READY]', message.data, backgroundPort?.postMessage)
-      await handleMessages(message, backgroundPort?.postMessage);
+      await handleMessages(message);
     }
 
     // 手动请求处理
     if (message.type === 'PROCESS_DATA') {
       console.log('[PROCESS_DATA]', message.data)
-      await handleMessages(message, backgroundPort?.postMessage);
+      await handleMessages(message);
     }
 
     // 保持消息端口开放
@@ -196,5 +196,16 @@ export default defineBackground(() => {
     });
 
     port.onDisconnect.addListener(clearAllPolling);
+  })
+
+  // Get command ID from environment variable
+  const VITE_QLABEL_COMMAND_ID = import.meta.env.VITE_QLABEL_COMMAND_ID
+
+  // Listen for keyboard shortcut commands
+  browser.commands?.onCommand.addListener((command: string) => {
+    if (command === VITE_QLABEL_COMMAND_ID) {
+      // Open the popup when the shortcut is pressed
+      browser.action?.openPopup()
+    }
   })
 });

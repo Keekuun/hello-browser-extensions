@@ -22,5 +22,8 @@
     "express": "^5.1.0",
     "typescript": "^5.8.3",
     "wxt": "^0.20.6"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
   }
 }
