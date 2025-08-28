@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
   processBtn.addEventListener('click', processImg);
 
   downloadLinkEl.addEventListener('click', () => {
-    downloadImage(downloadLinkEl.href, `processed_${targetData.taskId}.png`);
+    downloadImage(downloadLinkEl.href, `效果图—任务ID_${targetData.taskId}.png`);
   })
 
   // 定期清理过期缓存（例如：超过7天的数据）
