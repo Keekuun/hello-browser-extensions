@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import {showToast} from "@/components/toast";
-import {downloadImage} from "@/utils";
+import {downloadImage, triggerImgUpload} from "@/utils";
 
 // 处理结果
 const resultData = {}
@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pkImgBtn = document.getElementById('pkImgBtn') as HTMLButtonElement;
   const processedImageEl = document.getElementById('processedImage') as HTMLImageElement;
   const downloadLinkEl = document.getElementById('downloadLink') as HTMLAnchorElement;
+  const uploadImgBtn = document.getElementById('uploadImgBtn') as HTMLButtonElement;
 
   // 从 content script 获取目标数据
   const targetData = {
@@ -160,7 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
   processBtn.addEventListener('click', processImg);
 
   downloadLinkEl.addEventListener('click', () => {
-    downloadImage(downloadLinkEl.href, `效果图—任务ID_${targetData.taskId}.png`);
+    downloadImage(downloadLinkEl.href, `ps_${targetData.taskId}.png`);
+  })
+
+  uploadImgBtn.addEventListener('click', async () => {
+    // 向 content script 询问上传节点
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab.id) {
+      showToast('请先打开图片处理页面')
+      return
+    }
+    browser.tabs.sendMessage(tab.id, { type: 'UPLOAD_IMG', data: { url: downloadLinkEl.href, filename: `ps_${targetData.taskId}.png` } });
   })
 
   // 定期清理过期缓存（例如：超过7天的数据）

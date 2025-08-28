@@ -24,10 +24,15 @@
   </div>
 
   <div class="section" id="resultSection" style="display: none;">
-    <h2 class="section-title">效果图</h2>
-    <img id="processedImage" class="image"  alt="原图" />
-    <a id="downloadLink" class="download-btn">下载效果图</a>
-    <button id="pkImgBtn">图片对比</button>
+    <h2 class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+      效果图
+      <a id="downloadLink" class="download-btn">下载效果图</a>
+    </h2>
+    <img id="processedImage" class="image"  alt="效果图"/>
+    <div style="display: flex; gap: 8px;">
+      <button id="pkImgBtn">图片对比</button>
+      <button id="uploadImgBtn" style="background: mediumseagreen">直接上传</button>
+    </div>
   </div>
 </div>
 <script type="module" src="./main.ts"></script>

@@ -16,6 +16,9 @@ export default defineContentScript({
     const targetImgSelector = 'div.upload-annotation[group] > div.safe-image > img';
     const targetTextSelector = 'div.text-item[group] > div.text-container > div.text-content > div[name]';
 
+    // 图片上传目标dom节点
+    const targetFileInputSelector = 'div.t-upload > input[type=file]'
+
     // 定期检查元素是否加载完成
     const checkElements = setInterval(() => {
       // 获取任务id
@@ -58,6 +61,22 @@ export default defineContentScript({
       if (message.type === 'GET_DATA') {
         sendResponse(targetData);
         return true; // 保持消息通道打开以发送异步响应
+      }
+      if (message.type === 'UPLOAD_IMG') {
+        const fileInput = document.querySelector(targetFileInputSelector) as HTMLInputElement | null;
+        if (fileInput) {
+          import('@/utils').then(({triggerImgUpload}) => {
+            triggerImgUpload(message.data.url, message.data.filename, fileInput).then(() => {
+              sendResponse({ success: true });
+            }).catch((error) => {
+              sendResponse({ success: false, error: error.message });
+            });
+          });
+          return true; // 保持消息通道打开以发送异步响应
+        } else {
+          console.error('未找到文件输入元素');
+          sendResponse({ success: false, error: 'File input element not found' });
+        }
       }
     });
   }

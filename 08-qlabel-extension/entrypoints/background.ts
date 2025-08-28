@@ -3,7 +3,6 @@ import {genImgTaskId, getImgTaskResult} from "@/api";
 
 export default defineBackground(() => {
   let backgroundPort: any = null;
-
   // 服务器处理函数
   // 生成任务
   async function processTaskId(data: any) {
@@ -44,6 +43,7 @@ export default defineBackground(() => {
       const result = await new Promise((resolve, reject) => {
         startPolling(
           taskId,
+          message?.data,
           (data: any) => {
             resolve(data);
           },
@@ -71,11 +71,12 @@ export default defineBackground(() => {
   /**
    * 开始轮询任务状态
    * @param {string} taskId - 任务ID
+   * @param data - 任务数据
    * @param {function} onSuccess - 成功回调
    * @param {function} onError - 失败回调
    * @param {number} [timeout] - 可选自定义超时时间(毫秒)
    */
-  function startPolling(taskId: string, onSuccess: Function, onError: Function, timeout: number = pollStatus.DEFAULT_TIMEOUT) {
+  function startPolling(taskId: string, msgData: any, onSuccess: Function, onError: Function, timeout: number = pollStatus.DEFAULT_TIMEOUT) {
     // 如果已有相同taskId的轮询，先清除
     if (pollStatus.activePolls.has(taskId)) {
       clearPolling(taskId);
@@ -99,6 +100,7 @@ export default defineBackground(() => {
         const data = result.data;
         if (!data || !data.status) {
           clearPolling(taskId);
+          clearLocalCache(msgData.taskId)
           onError(new Error(`任务结果错误`));
           console.error(`任务结果错误: ${JSON.stringify(result)}`);
           return;
@@ -114,6 +116,7 @@ export default defineBackground(() => {
             break;
           case 'failed':
             clearPolling(taskId);
+            clearLocalCache(msgData.taskId)
             console.error(`[task failed] ${result}`)
             onError('任务失败请重试');
             break;
@@ -141,6 +144,11 @@ export default defineBackground(() => {
       clearInterval(pollStatus.activePolls.get(taskId));
       pollStatus.activePolls.delete(taskId);
     }
+  }
+
+  // 清除本地失败任务ID的缓存
+  function clearLocalCache(taskId: string) {
+    browser.storage.local.remove(`processed_taskId_${taskId}`)
   }
 
   /**
