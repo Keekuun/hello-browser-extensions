@@ -20,10 +20,10 @@ export default defineBackground(() => {
         editor: data.user
       })
 
-      if (!response?.data?.task_id) {
+      if (!response?.task_id) {
         throw new Error(`服务器响应错误: ${response.message}`);
       }
-      const taskId = response.data.task_id;
+      const taskId = response.task_id;
       browser.storage.local.set({[`processed_taskId_${data.taskId}`]: {
           taskId: taskId,
           timestamp: Date.now(),
@@ -97,7 +97,7 @@ export default defineBackground(() => {
         // 调用API查询任务状态
         const result = await getImgTaskResult(taskId);
 
-        const data = result.data;
+        const data = result;
         if (!data || !data.status) {
           clearPolling(taskId);
           clearLocalCache(msgData.taskId)
@@ -111,8 +111,8 @@ export default defineBackground(() => {
         switch (status) {
           case 'completed':
             clearPolling(taskId);
-            console.log('[task completed]', result.data)
-            onSuccess(result.data);
+            console.log('[task completed]', result)
+            onSuccess(result);
             break;
           case 'failed':
             clearPolling(taskId);
@@ -122,7 +122,7 @@ export default defineBackground(() => {
             break;
           // 其他状态继续轮训
           default:
-            console.log('[task pending]', result.data)
+            console.log('[task pending]', result)
             break;
         }
       } catch (error) {

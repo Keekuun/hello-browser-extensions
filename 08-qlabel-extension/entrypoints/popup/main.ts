@@ -3,7 +3,7 @@ import {showToast} from "@/components/toast";
 import {downloadImage, triggerImgUpload} from "@/utils";
 
 // 处理结果
-const resultData = {}
+const resultData: Record<string, any> = {}
 
 document.addEventListener('DOMContentLoaded', () => {
   // 获取DOM元素
@@ -34,16 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("[In content script], received message from background script: ", message);
     if(message.type === 'TASK_RESULT') {
       if(message.success) {
-        if(message.data?.image_url) {
+        if(message.data?.result_url) {
           Object.assign(resultData, message.data)
           // 缓存结果到 localStorage
           browser.storage.local.set({[`processed_img_${targetData.taskId}`]: {
-              image_url: message.data.image_url,
+              image_url: message.data.result_url,
               timestamp: Date.now(),
               taskId: targetData.taskId
             }});
 
-          displayProcessedImg(message.data.image_url);
+          displayProcessedImg(message.data.result_url);
           unlockProcessBtn()
           showToast('处理成功，你可以通过图片对比查看效果', 'success');
         }

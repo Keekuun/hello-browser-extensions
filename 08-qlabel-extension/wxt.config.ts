@@ -19,7 +19,7 @@ export default defineConfig({
     description: '提取QLabel页面的指令和图片并处理',
     version: '1.0',
     permissions: ['activeTab', 'storage'],
-    host_permissions: ['https://qlabel.tencent.com/workbench/tasks/*', "http://localhost:63342/*"],
+    host_permissions: ['https://qlabel.tencent.com/workbench/tasks/*', "http://localhost:63342/*", "http://10.10.133.23:8431"],
     commands: {
       [process.env.VITE_QLABEL_COMMAND_ID!]: {
         suggested_key: {

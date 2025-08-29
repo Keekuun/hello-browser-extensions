@@ -1,10 +1,11 @@
-const Base_URL = import.meta.env.VITE_API_URL
+// const Base_URL = import.meta.env.VITE_API_URL
+const Base_URL = import.meta.env.VITE_API_HOST_URL
 
-export interface BaseResp<T> {
-  code: number;
-  data: T;
-  message: string;
-}
+// export interface BaseResp<T> {
+//   code: number;
+//   data: T;
+//   message: string;
+// }
 
 export interface GenImgTaskIdParams {
   image_url: string; // 需要处理的图片URL
@@ -31,13 +32,14 @@ export interface GenImgTaskIdParams {
  *         "editor": "user123"
  *     })
  */
-export const genImgTaskId = async (data: GenImgTaskIdParams): Promise<BaseResp<{task_id: string}>> => {
-  const resp = await fetch(`${Base_URL}/ps_tasks/submit`, {
+export const genImgTaskId = async (data: GenImgTaskIdParams): Promise<{task_id: string, message: string}> => {
+  // const resp = await fetch(`${Base_URL}/ps_tasks/submit`, {
+  const resp = await fetch(`${Base_URL}/api/submit-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({...data, category: 'modify'}),
   })
   return resp.json()
 }
@@ -47,10 +49,10 @@ export interface GenImgResultParams {
 }
 
 export interface GenImgResultItem {
-  image_id: string; // 图片ID
-  status: 'pending' | 'processing' | 'completed' | 'failed'; // 任务状态
+  task_id: string; // 图片ID
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'submitted'; // 任务状态
   result_url?: string; // 处理后的图片URL，任务完成后返回
-  error_message?: string; // 任务失败时的错误信息
+  message?: string; // 任务失败时的错误信息
 }
 
 /**
@@ -68,9 +70,11 @@ export interface GenImgResultItem {
  *  }
  * ```
  */
-export const getImgTaskResult = async (task_id: string): Promise<BaseResp<GenImgResultItem>> => {
-  const resp = await fetch(`${Base_URL}/ps_tasks/result/${task_id}`, {
-    method: 'GET',
+export const getImgTaskResult = async (task_id: string): Promise<GenImgResultItem> => {
+  // const resp = await fetch(`${Base_URL}/ps_tasks/result/${task_id}`, {
+  const resp = await fetch(`${Base_URL}/api/query-result`, {
+    method: 'POST',
+    body: JSON.stringify({ task_id }),
     headers: {
       'Content-Type': 'application/json',
     },
