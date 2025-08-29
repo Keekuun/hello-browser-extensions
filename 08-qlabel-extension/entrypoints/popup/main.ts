@@ -5,7 +5,26 @@ import {downloadImage, triggerImgUpload} from "@/utils";
 // 处理结果
 const resultData: Record<string, any> = {}
 
+// popup中需要刷新数据时调用
+function requestFreshData() {
+  browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    if (!tab.id) return;
+    browser.tabs.sendMessage(
+      tab.id,
+      { action: 'refreshDomData' },
+      (response: any) => {
+        if (response?.data) {
+          console.log('刷新后的DOM数据：', response.data);
+          // 更新popup界面
+        }
+      }
+    );
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  requestFreshData();
   // 获取DOM元素
   const statusEl = document.getElementById('status')!;
   const taskIdEl = document.getElementById('taskId')!;

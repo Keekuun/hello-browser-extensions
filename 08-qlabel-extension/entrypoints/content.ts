@@ -1,4 +1,5 @@
 import {browser} from 'wxt/browser';
+import {createInflate} from "node:zlib";
 
 export default defineContentScript({
   matches: ['https://qlabel.tencent.com/workbench/tasks/*', "http://localhost/*"],
@@ -20,41 +21,52 @@ export default defineContentScript({
     const targetFileInputSelector = 'div.t-upload > input[type=file]'
 
     // 定期检查元素是否加载完成
-    const checkElements = setInterval(() => {
-      // 获取任务id
-      const taskIdElement = document.querySelector(taskIdSelector);
-      const taskId = taskIdElement?.textContent?.trim()?.split(/[:：]/)?.[1]?.trim() || Date.now().toString();
-      // 获取文本内容
-      const textElement = document.querySelector(targetTextSelector);
-      const targetText = textElement?.textContent?.trim() ?? '';
+    const checkElements = setInterval(getDomData, 200);
 
-      // 获取图片链接
-      const imgElement = document.querySelector(targetImgSelector) as HTMLImageElement | null;
-      const imgUrl = imgElement?.src;
+    function getDomData() {
+        // 获取任务id
+        const taskIdElement = document.querySelector(taskIdSelector);
+        const taskId = taskIdElement?.textContent?.trim()?.split(/[:：]/)?.[1]?.trim() || Date.now().toString();
+        // 获取文本内容
+        const textElement = document.querySelector(targetTextSelector);
+        const targetText = textElement?.textContent?.trim() ?? '';
 
-      // 当前登陆的用户email在localStorage中
-      const user = localStorage.getItem('email') || 'unknown_user';
-      console.log(`User: ${user}, Task ID: ${taskId}, Text: ${targetText}, Image URL: ${imgUrl}`);
+        // 获取图片链接
+        const imgElement = document.querySelector(targetImgSelector) as HTMLImageElement | null;
+        const imgUrl = imgElement?.src;
 
-      // 当两个元素都找到时
-      if (targetText && imgUrl) {
-        clearInterval(checkElements);
+        // 当前登陆的用户email在localStorage中
+        const user = localStorage.getItem('email') || 'unknown_user';
+        console.log(`User: ${user}, Task ID: ${taskId}, Text: ${targetText}, Image URL: ${imgUrl}`);
 
-        Object.assign(targetData, {
-          user,
-          taskId,
-          text: targetText,
-          imageUrl: imgUrl,
-          timestamp: new Date().getTime()
-        })
+        // 当两个元素都找到时
+        if (targetText && imgUrl) {
+          clearInterval(checkElements);
 
-        // 发送消息通知background数据已准备好
-        browser.runtime.sendMessage({
-          type: 'DATA_READY',
-          data: targetData
-        });
+          Object.assign(targetData, {
+            user,
+            taskId,
+            text: targetText,
+            imageUrl: imgUrl,
+            timestamp: new Date().getTime()
+          })
+
+          // 发送消息通知background数据已准备好
+          browser.runtime.sendMessage({
+            type: 'DATA_READY',
+            data: targetData
+          });
+        }
+    }
+
+    // 监听来自popup或background的刷新请求
+    browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === 'refreshDomData') {
+        // 执行刷新并返回最新数据
+        getDomData()
+        sendResponse({ status: 'success', data: targetData });
       }
-    }, 200);
+    });
 
     // 监听来自popup的请求
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
