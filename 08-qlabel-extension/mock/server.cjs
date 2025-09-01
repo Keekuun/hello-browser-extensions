@@ -17,7 +17,7 @@ function generateId() {
 }
 
 // 1. 提交任务
-app.post('/ps_tasks/submit', (req, res) => {
+app.post('/api/image/submit-task', (req, res) => {
    try {
        const { image_url, prompt, image_id, priority, editor } = req.body;
 
@@ -61,56 +61,47 @@ app.post('/ps_tasks/submit', (req, res) => {
                tasksDB[taskId].status = 'completed';
                imagesDB[taskImageId] = {
                    // random image url for mock
-                   image_url: url,
-                   image_rid: taskImageId
+                   result_url: url,
+                   task_id: taskImageId
                };
            })
        }, 5000);
 
        res.status(200).json({
-           code: 200,
-           msg: "success",
-           data: {
-               task_id: taskId
-           }
+           task_id: taskId,
+           message: "Task submitted successfully"
        });
    } catch (error) {
        res.status(500).json({
-           code: 500,
-           msg: "Internal Server Error",
-           data: {}
+           task_id: "",
+           message: "Failed to submit task"
        });
    }
 });
 
 // 2. 查询任务结果
-app.get('/ps_tasks/result/:task_id', (req, res) => {
-    const taskId = req.params.task_id;
+app.post('/api/image/query-result', (req, res) => {
+    const taskId = req.body.task_id;
     const task = tasksDB[taskId];
 
     if (!task) {
         return res.status(404).json({
-            code: 404,
-            msg: "Task not found",
-            data: {}
+            message: "Task not found",
+            status: "failed"
         });
     }
 
     const responseData = {
         status: task.status,
-        error_message: task.status === 'failed' ? 'Processing error' : ''
+        message: task.status === 'failed' ? 'Processing error' : ''
     };
 
     if (task.status === 'completed') {
-        responseData.image_url = imagesDB[task.image_id].image_url;
-        responseData.image_rid = imagesDB[task.image_id].image_rid;
+        responseData.result_url = imagesDB[task.image_id].result_url;
+        responseData.task_id = imagesDB[task.image_id].task_id;
     }
 
-    res.status(200).json({
-        code: 200,
-        msg: "success",
-        data: responseData
-    });
+    res.status(200).json(responseData);
 });
 
 // 启动服务器

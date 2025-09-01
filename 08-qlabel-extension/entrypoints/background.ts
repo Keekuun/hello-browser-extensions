@@ -2,7 +2,7 @@ import {browser} from 'wxt/browser';
 import {genImgTaskId, getImgTaskResult} from "@/api";
 
 export default defineBackground(() => {
-  let backgroundPort: any = null;
+  let backgroundPort: globalThis.Browser.runtime.Port | null = null;
   // 服务器处理函数
   // 生成任务
   async function processTaskId(data: any) {
@@ -162,7 +162,7 @@ export default defineBackground(() => {
   }
 
   // 监听调用使用
-  browser.runtime.onMessage.addListener(async (message) => {
+  browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     // 处理来自popup的处理请求
 
     // 获取数据后自动处理

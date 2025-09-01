@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import {showToast} from "@/components/toast";
-import {downloadImage, triggerImgUpload} from "@/utils";
+import {downloadImage} from "@/utils";
 
 // 处理结果
 const resultData: Record<string, any> = {}
@@ -181,9 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   downloadLinkEl.addEventListener('click', () => {
     downloadImage(downloadLinkEl.href, `ps_${targetData.taskId}.png`);
+    // https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/_archive/mv2/api/downloads/download_links/popup.js
   })
 
-  uploadImgBtn.addEventListener('click', async () => {
+  uploadImgBtn?.addEventListener('click', async () => {
     // 向 content script 询问上传节点
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
@@ -200,15 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const allData = await browser.storage.local.get();
       const now = Date.now();
       const isDev = import.meta.env.DEV;
-      const expireTime = isDev ? 30 * 1000 : 7 * 24 * 60 * 60 * 1000; // 7天毫秒数
+      const expireTime = isDev ? 30 * 1000 : 30 * 60 * 1000; // 生产环境缓存半小时，开发环境30秒
       const keysToDelete: string[] = [];
 
       // 检查每个缓存项的时间戳
       Object.keys(allData).forEach(key => {
         // 不删除当前任务的数据
-        if (key === 'currentTask') {
-          return;
-        }
         if (!key.includes(targetData.taskId) && key.startsWith('processed_')) {
           const data = allData[key];
           // 删除过期的缓存项

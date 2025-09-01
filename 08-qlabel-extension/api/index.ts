@@ -1,11 +1,6 @@
 // const Base_URL = import.meta.env.VITE_API_URL
 const Base_URL = import.meta.env.VITE_API_HOST_URL
-
-// export interface BaseResp<T> {
-//   code: number;
-//   data: T;
-//   message: string;
-// }
+const ACC_KEY = import.meta.env.VITE_API_ACC_KEY
 
 export interface GenImgTaskIdParams {
   image_url: string; // 需要处理的图片URL
@@ -33,13 +28,12 @@ export interface GenImgTaskIdParams {
  *     })
  */
 export const genImgTaskId = async (data: GenImgTaskIdParams): Promise<{task_id: string, message: string}> => {
-  // const resp = await fetch(`${Base_URL}/ps_tasks/submit`, {
-  const resp = await fetch(`${Base_URL}/api/submit-task`, {
+  const resp = await fetch(`${Base_URL}/api/image/submit-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({...data, category: 'modify'}),
+    body: JSON.stringify({...data, category: 'modify', acc_key: ACC_KEY}),
   })
   return resp.json()
 }
@@ -71,10 +65,9 @@ export interface GenImgResultItem {
  * ```
  */
 export const getImgTaskResult = async (task_id: string): Promise<GenImgResultItem> => {
-  // const resp = await fetch(`${Base_URL}/ps_tasks/result/${task_id}`, {
-  const resp = await fetch(`${Base_URL}/api/query-result`, {
+  const resp = await fetch(`${Base_URL}/api/image/query-result`, {
     method: 'POST',
-    body: JSON.stringify({ task_id }),
+    body: JSON.stringify({ task_id, acc_key: ACC_KEY }),
     headers: {
       'Content-Type': 'application/json',
     },

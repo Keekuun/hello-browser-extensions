@@ -1,5 +1,4 @@
 import {browser} from 'wxt/browser';
-import {createInflate} from "node:zlib";
 
 export default defineContentScript({
   matches: ['https://qlabel.tencent.com/workbench/tasks/*', "http://localhost/*"],
