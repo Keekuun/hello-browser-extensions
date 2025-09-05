@@ -1,0 +1,83 @@
+import { useEffect, useRef, useState } from "react"
+function IndexPopup() {
+  const [data, setData] = useState("")
+
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  useEffect(() => {
+    window.addEventListener("message", (event) => {
+      console.log("EVAL output: " + event.data)
+    })
+  }, [])
+  return (
+    <div
+      style={{
+        width: "150px",
+        display: "flex",
+        flexDirection: "column",
+        padding: 16
+      }}>
+      <h2>
+        Welcome to your{" "}
+        <a href="https://www.plasmo.com" target="_blank">
+          Plasmo
+        </a>{" "}
+        Extension!
+      </h2>
+      <input onChange={(e) => setData(e.target.value)} value={data} />
+      <a href="https://docs.plasmo.com" target="_blank">
+        View Docs
+      </a>
+      {/*tabs page demo   */}
+      <button
+        onClick={() => {
+          chrome.tabs.create({
+            url: "./tabs/delta-flyer.html"
+          })
+        }}>
+        open tab page
+      </button>
+      <button
+        onClick={() => {
+          chrome.tabs.query(
+            { active: true, currentWindow: true },
+            function (tabs) {
+              const { id } = tabs[0]
+              chrome.scripting.executeScript({
+                target: { tabId: id },
+                func: () => {
+                  const iframe = document.createElement("iframe")
+                  iframe.src = chrome.runtime.getURL("/tabs/delta-flyer.html")
+                  iframe.name = "delta-flyer"
+                  document.body.appendChild(iframe)
+                }
+              })
+            }
+          )
+        }}>
+        iframe mounting
+      </button>
+
+      {/*tabs page demo end  */}
+
+      {/*sandbox page demo*/}
+      <button
+        onClick={() => {
+          iframeRef.current.contentWindow.postMessage("10 + 20", "*")
+        }}>
+        Trigger iframe eval
+      </button>
+      <iframe src="sandbox.html" ref={iframeRef} style={{ display: "none" }} />
+      <button
+        onClick={() => {
+          chrome.tabs.create({
+            url: "./sandboxes/demo.html"
+          })
+        }}>
+        open sandboxes demo page
+      </button>
+      {/*sandbox page demo end*/}
+    </div>
+  )
+}
+
+export default IndexPopup
