@@ -46,8 +46,20 @@
 - `scripting`: 注入内容脚本以获取页面数据
 
 ## 开发
-本项目初始化代码使用AI生成（[原始AI Prompt](../material/qlabel-files/README.md) - [AI 结果](../material/qlabel-files/ai.md)），后续功能开发和调试均手动修改。
 
-使用WXT框架开发，详细介绍请查看[WXT框架文档](https://github.com/wxt-dev/wxt)。
+本项目使用WXT框架开发，详细介绍请查看[WXT框架文档](https://github.com/wxt-dev/wxt)。
+
+### 环境配置
+
+项目使用环境变量来配置API地址和访问密钥：
+
+1. 复制 `.env.development` 或 `.env.production` 文件
+2. 修改以下配置项：
+   - `VITE_API_HOST_URL`: 你的API服务器地址
+   - `VITE_API_ACC_KEY`: 你的API访问密钥
+
+### 初始化代码
+
+本项目初始化代码使用AI生成（[原始AI Prompt](../material/qlabel-files/README.md) - [AI 结果](../material/qlabel-files/ai.md)），后续功能开发和调试均手动修改。
 
 [浏览器扩展开发框架-WXT](../use-WXT.md)
