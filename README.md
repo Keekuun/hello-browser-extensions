@@ -47,3 +47,6 @@
 ### Plasmo 框架示例
 
 1. [Plasmo All](./09-plasmo-all/README.md) - 使用 Plasmo 框架开发的全功能扩展示例
+
+### 深入指南
+1. [更进一步](./guide.md)
