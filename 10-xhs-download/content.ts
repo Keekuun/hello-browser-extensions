@@ -138,6 +138,8 @@ class XhsDownload {
     })
 
     this.downloadButton.addEventListener('click', () => {
+      // 添加toast提示
+      this.showToast('正在准备下载...', 'info')
       this.downloadAllImages()
     })
 
@@ -148,22 +150,38 @@ class XhsDownload {
 
   // 获取帖子标题
   private getPostTitle(): string {
-    const titleElement = document.querySelector('#detail-title')
+    // 尝试多种选择器获取标题，适应不同页面结构
+    let titleElement: HTMLElement | null = null
+    
+    // 合并多个标题选择器，一次性尝试获取
+    titleElement = document.querySelector('#detail-title')
+    
+    // 获取标题文本，如果没有标题则尝试获取正文内容
+    let rawTitle = ''
     if (titleElement) {
-      // 清理标题，去除Chrome不允许的特殊字符
-      let title = titleElement.textContent?.trim() || ''
-      // 移除Chrome downloads API不允许的特殊字符：\ / : * ? " < > |
-      title = title.replace(/[\\/:*?"<>|]/g, '_')
-      // 移除多余的下划线
-      title = title.replace(/_+/g, '_')
-      // 限制长度，避免过长文件名
-      if (title.length > 50) {
-        title = title.substring(0, 50)
+      rawTitle = titleElement.textContent?.trim() || ''
+    } else {
+      // 尝试获取正文内容作为备选
+      const contentElement = document.querySelector('#detail-desc')
+      if (contentElement) {
+        // 只使用正文前20个字符作为标题
+        rawTitle = contentElement.textContent?.trim().substring(0, 20) || ''
       }
-      // 如果标题为空，使用默认值
-      return title || 'xhs-post'
     }
-    return 'xhs-post'
+    
+    // 清理标题，去除Chrome不允许的特殊字符
+    let title = rawTitle
+      // 移除Chrome downloads API不允许的特殊字符：\ / : * ? " < > |
+      .replace(/[\\/:*?"<>|]/g, '_')
+      // 移除多余的下划线
+      .replace(/_+/g, '_')
+      // 限制长度，避免过长文件名
+      .substring(0, 20)
+      // 去除首尾空白
+      .trim()
+    
+    // 如果标题为空，使用默认值
+    return title || 'xhs-post'
   }
 
   // 下载所有图片
@@ -176,6 +194,8 @@ class XhsDownload {
 
     const postTitle = this.getPostTitle()
     
+    console.log('postTitle', postTitle)
+
     try {
       // 如果只有一张图片，直接下载
       if (images.length === 1) {
@@ -200,15 +220,20 @@ class XhsDownload {
           url: imgUrl,
           filename: filename
         }, (response) => {
-          if (response.success) {
-            this.showToast('图片下载请求已发送', 'success')
-          } else {
-            console.error('下载请求发送失败:', response.error)
-            if (response.error.includes('正在下载')) {
-              this.showToast('该图片正在下载中', 'info')
+          if (response) {
+            if (response.success) {
+              this.showToast('图片下载请求已发送', 'success')
             } else {
-              this.showToast('下载请求发送失败', 'error')
+              console.error('下载请求发送失败:', response.error)
+              if (response.error.includes('正在下载')) {
+                this.showToast('该图片正在下载中', 'info')
+              } else {
+                this.showToast('下载请求发送失败', 'error')
+              }
             }
+          } else {
+            console.error('下载请求发送失败: 未收到响应')
+            this.showToast('下载请求发送失败', 'error')
           }
         })
       } else {
@@ -221,21 +246,26 @@ class XhsDownload {
           images: images,
           postTitle: postTitle
         }, (response) => {
-          if (response.success) {
-            this.showToast('图片下载请求已发送', 'success')
-          } else {
-            console.error('下载请求发送失败:', response.error)
-            if (response.error.includes('正在下载')) {
-              this.showToast('该图片集正在下载中', 'info')
+          if (response) {
+            if (response.success) {
+              this.showToast('图片下载请求已发送', 'success')
             } else {
-              this.showToast('下载请求发送失败', 'error')
+              console.error('下载请求发送失败:', response.error)
+              if (response.error.includes('正在下载')) {
+                this.showToast('该图片集正在下载中', 'info')
+              } else {
+                this.showToast('下载请求发送失败', 'error')
+              }
             }
+          } else {
+            console.error('下载请求发送失败: 未收到响应')
+            this.showToast('下载请求发送失败', 'error')
           }
         })
       }
     } catch (error) {
       console.error('下载失败:', error)
-      alert('下载失败，请查看控制台')
+      this.showToast('下载失败，请查看控制台', 'error')
     }
   }
 
@@ -258,62 +288,66 @@ class XhsDownload {
 
   // 去除图片水印
   private removeWatermark(url: string): string {
-    let result = url
-    
-    // 小红书图片去水印处理
-    // 1. 处理包含watermark的URL
-    if (result.includes('watermark')) {
-      // 移除watermark相关参数
-      result = result.replace(/\?watermark.*$/, '')
-    }
-    
-    // 2. 处理包含wm参数的URL
-    if (result.includes('wm=')) {
-      result = result.replace(/wm=[^&]+&?/, '')
-      // 移除末尾的&符号
-      if (result.endsWith('&')) {
-        result = result.slice(0, -1)
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      
+      // 找到 "!" 的位置并截取
+      const exclamationIndex = path.indexOf("!");
+      if (exclamationIndex !== -1) {
+        const newPath = path.substring(0, exclamationIndex);
+        
+        // 提取从第三个 "/" 开始的部分
+        const pathParts = newPath.split("/");
+        if (pathParts.length > 3) {
+          const imageName = pathParts.slice(3).join("/");
+          
+          // 构建新的 URL
+          return `https://sns-img-bd.xhscdn.com/${imageName}`;
+        }
       }
+      
+      // 如果处理失败，返回原始 URL
+      return url;
+    } catch (error) {
+      // 如果 URL 解析失败，返回原始 URL
+      console.error("URL parsing error in removeWatermark:", error);
+      return url;
     }
-    
-    // 3. 处理缩略图URL，转换为原图
-    // 常见的缩略图标记：_180x180、_360x360、_720x720等
-    result = result.replace(/_\d+x\d+(\.\w+)$/, '$1')
-    
-    // 4. 处理包含quality参数的URL，提高图片质量
-    if (result.includes('quality=')) {
-      result = result.replace(/quality=\d+/, 'quality=100')
-    }
-    
-    return result
   }
 
   // 下载单张图片
   private downloadImage(url: string, filename: string) {
+    this.showToast('正在准备下载...', 'info')
     try {
       // 去除水印
       const noWatermarkUrl = this.removeWatermark(url)
       
       // 发送消息到background进行下载
-    chrome.runtime.sendMessage({
-      action: 'downloadImage',
-      url: noWatermarkUrl,
-      filename: filename
-    }, (response) => {
-      if (response.success) {
-        this.showToast('图片下载请求已发送', 'success')
-      } else {
-        console.error('下载请求发送失败:', response.error)
-        if (response.error.includes('正在下载')) {
-          this.showToast('该图片正在下载中', 'info')
+      chrome.runtime.sendMessage({
+        action: 'downloadImage',
+        url: noWatermarkUrl,
+        filename: filename
+      }, (response) => {
+        if (response) {
+          if (response.success) {
+            this.showToast('图片下载请求已发送', 'success')
+          } else {
+            console.error('下载请求发送失败:', response.error)
+            if (response.error.includes('正在下载')) {
+              this.showToast('该图片正在下载中', 'info')
+            } else {
+              this.showToast('下载请求发送失败', 'error')
+            }
+          }
         } else {
+          console.error('下载请求发送失败: 未收到响应')
           this.showToast('下载请求发送失败', 'error')
         }
-      }
-    })
+      })
     } catch (error) {
       console.error('下载图片失败:', error)
-      throw error
+      this.showToast('下载请求发送失败', 'error')
     }
   }
 
@@ -324,7 +358,8 @@ class XhsDownload {
       const target = e.target as HTMLElement
       if (target.tagName === 'IMG') {
         // 延迟执行，确保浏览器默认菜单已创建
-        setTimeout(() => this.modifyContextMenu(), 10)
+        // 增加延迟时间到50ms，确保菜单完全创建
+        setTimeout(() => this.modifyContextMenu(), 50)
       }
     })
   }
@@ -380,12 +415,20 @@ class XhsDownload {
             // 限制扩展名长度，防止恶意URL
             ext = ext.slice(0, 5)
             const postTitle = this.getPostTitle()
-            const filename = `${postTitle}-active.${ext}`
+            console.log('postTitle', postTitle)
+            // 单张图片下载时直接使用帖子标题作为文件名
+            const filename = `${postTitle}.${ext}`
             this.downloadImage(src, filename)
           }
       }
-      // 关闭右键菜单
-      contextMenu.remove()
+      // 关闭右键菜单 - 使用更合适的方式，不直接删除容器
+      // 通常网站会添加隐藏类或修改style来关闭菜单，而不是删除
+      if (contextMenu) {
+        // 尝试添加隐藏类（根据小红书的实际实现）
+        contextMenu.style.display = 'none'
+        // 或者模拟点击页面其他地方关闭菜单
+        document.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      }
     })
 
     // 将按钮插入到菜单最前面

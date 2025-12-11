@@ -33,24 +33,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'downloadImage') {
     downloadImage(message.url, message.filename)
       .then(() => {
-        sendNotification('下载完成', `图片 "${message.filename}" 已成功下载`)
         sendResponse({ success: true })
       })
       .catch(error => {
         console.error('下载失败:', error)
-        sendNotification('下载失败', `图片 "${message.filename}" 下载失败`)
         sendResponse({ success: false, error: error.message })
       })
     return true // 表示会异步发送响应
   } else if (message.action === 'downloadImages') {
     downloadImages(message.images, message.postTitle)
       .then(() => {
-        sendNotification('下载完成', `${message.images.length} 张图片已成功下载为ZIP文件`)
         sendResponse({ success: true })
       })
       .catch(error => {
         console.error('下载失败:', error)
-        sendNotification('下载失败', '图片下载失败，请查看控制台')
         sendResponse({ success: false, error: error.message })
       })
     return true // 表示会异步发送响应
@@ -154,7 +150,10 @@ async function downloadImages(images: string[], postTitle: string) {
   
   try {
     const zip = new JSZip()
-  
+    // 清理文件名
+    const sanitizedPostTitle = sanitizeFilename(postTitle)
+    const zipFilename = `${sanitizedPostTitle}-images.zip`
+
   // 下载所有图片
   for (let i = 0; i < images.length; i++) {
     const imgUrl = images[i]
@@ -171,14 +170,15 @@ async function downloadImages(images: string[], postTitle: string) {
     // 获取图片扩展名
     const ext = blob.type.split('/')[1] || 'jpg'
     // 添加到zip
-    zip.file(`${sanitizeFilename(postTitle)}-${i + 1}.${ext}`, blob)
+    zip.file(`${sanitizedPostTitle}-${i + 1}.${ext}`, blob)
   }
+  
+  // 创建包含所有图片链接的txt文件
+  const linksContent = images.map((url, index) => `${index + 1}. ${url}`).join('\n')
+  zip.file(`${sanitizedPostTitle}-image-links.txt`, linksContent)
   
   // 生成zip文件
   const zipBlob = await zip.generateAsync({ type: 'blob' })
-  // 清理文件名
-  const sanitizedPostTitle = sanitizeFilename(postTitle)
-  const zipFilename = `${sanitizedPostTitle}-images.zip`
   
   // 在Service Worker中，使用FileReader将zip blob转换为data URL
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -210,13 +210,4 @@ async function downloadImages(images: string[], postTitle: string) {
     removeFromDownloading(zipIdentifier, zipFilename);
     throw error;
   }
-}
-
-// 发送系统通知
-function sendNotification(title: string, message: string) {
-  chrome.notifications.create({
-    type: 'basic',
-    title: title,
-    message: message
-  })
 }
