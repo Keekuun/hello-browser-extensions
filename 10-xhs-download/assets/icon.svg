@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- 背景 -->
+  <rect width="128" height="128" rx="24" fill="#FF2442"/>
+  
+  <!-- 图片图标 -->
+  <rect x="32" y="32" width="64" height="48" rx="8" fill="white" opacity="0.9"/>
+  <rect x="40" y="40" width="24" height="24" rx="4" fill="#FF2442" opacity="0.7"/>
+  <path d="M88 40 L72 56 L80 64 L88 56 Z" fill="#FF2442" opacity="0.7"/>
+  
+  <!-- 下载箭头 -->
+  <path d="M64 72 L52 84 L76 84 Z" fill="white"/>
+  <rect x="62" y="60" width="4" height="12" fill="white"/>
+  
+  <!-- 装饰元素 -->
+  <circle cx="28" cy="28" r="4" fill="white" opacity="0.8"/>
+  <circle cx="100" cy="28" r="4" fill="white" opacity="0.8"/>
+  <circle cx="28" cy="100" r="4" fill="white" opacity="0.8"/>
+  <circle cx="100" cy="100" r="4" fill="white" opacity="0.8"/>
+</svg>

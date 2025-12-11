@@ -1,0 +1,6 @@
+页面图片css选择器:
+#noteContainer > div.media-container > div > div > div.swiper.swiper-initialized.swiper-horizontal.swiper-pointer-events.swiper-watch-progress.note-slider.swiper-backface-hidden > div > div.swiper-slide.swiper-slide-visible.swiper-slide-active.swiper-slide-duplicate-next.swiper-slide-duplicate-prev > div > div > img
+点击图片出现右键菜单的css选择器:
+body > div.context-menu-container > div.menu-item:nth-child(1)
+
+目标：创建一个浏览器插件，当出现图片swiper列表的时候，显示一个下载按钮，点击下载可以将当前幻灯片中的链接全部获取发给后端（注意跨域）。并且如果用户手动右键出现了上述右键菜单，需要在右键菜单列表最前面加上我们这个个性化的下载按钮，只下载当前的图片
