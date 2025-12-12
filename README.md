@@ -55,3 +55,66 @@
 
 ### 深入指南
 1. [更进一步](./guide.md)
+
+## Submodule管理说明
+
+### 小红书图片下载器（10-xhs-download）
+
+`10-xhs-download`目录使用Git Submodule方式管理，指向独立的GitHub仓库：https://github.com/Keekuun/xhs-download.git
+
+### 克隆包含Submodule的仓库
+
+```bash
+# 克隆主仓库
+git clone https://github.com/your-username/hello-browser-extensions.git
+
+# 初始化并更新所有Submodule
+git submodule update --init --recursive
+```
+
+### 更新Submodule
+
+```bash
+# 进入Submodule目录
+cd 10-xhs-download
+
+# 拉取最新代码
+git pull origin main
+
+# 返回主仓库并提交Submodule引用更新
+cd ..
+git add 10-xhs-download
+git commit -m "Update 10-xhs-download submodule"
+```
+
+### 在Submodule中进行开发
+
+```bash
+# 进入Submodule目录
+cd 10-xhs-download
+
+# 进行正常的Git操作
+# 例如：修改文件、提交更改、推送到远程仓库
+git add .
+git commit -m "Update feature"
+git push origin main
+
+# 返回主仓库并提交Submodule引用更新
+cd ..
+git add 10-xhs-download
+git commit -m "Update 10-xhs-download submodule"
+```
+
+### 查看Submodule状态
+
+```bash
+# 查看Submodule状态
+git submodule status
+
+# 查看详细信息
+git submodule status --recursive
+```
+
+### 关于Submodule的更多信息
+
+详细的Git Submodule使用方法和操作指南，请参考：[Git Submodule 和 Subtree 使用指南](./GIT_SUBMODULE_SUBTREE_GUIDE.md)
