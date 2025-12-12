@@ -1,0 +1,3 @@
+[submodule "10-xhs-download"]
+	path = 10-xhs-download
+	url = https://github.com/Keekuun/xhs-download.git
