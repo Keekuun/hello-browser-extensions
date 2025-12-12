@@ -158,7 +158,7 @@ git push
 
 ```bash
 # 查看当前 Git 状态
-(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git status
+git status
 On branch main
 Your branch is up to date with 'origin/main'.
 
@@ -171,7 +171,7 @@ Changes not staged for commit:
         # ... 其他被删除的文件 ...
 
 # 提交删除操作
-(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git commit -am "Remove 10-xhs-download directory"
+git commit -am "Remove 10-xhs-download directory"
 [main 2d3d8cd] Remove 10-xhs-download directory
  18 files changed, 7803 deletions(-)
  delete mode 100644 10-xhs-download/.github/workflows/release.yml
@@ -180,7 +180,7 @@ Changes not staged for commit:
  # ... 其他删除的文件 ...
 
 # 添加子模块
-(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git submodule add https://github.com/Keekuun/xhs-download.git 10-xhs-download
+git submodule add https://github.com/Keekuun/xhs-download.git 10-xhs-download
 Cloning into 'D:/code/github/hello-browser-extensions/10-xhs-download'...
 remote: Enumerating objects: 23, done.
 remote: Counting objects: 100% (23/23), done.
@@ -190,7 +190,7 @@ Receiving objects: 100% (23/23), 1.03 MiB | 1.12 MiB/s, done.
 Resolving deltas: 100% (1/1), done.
 
 # 查看 Git 状态确认子模块已添加
-(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git status
+git status
 On branch main
 Your branch is up to date with 'origin/main'.
 
@@ -213,7 +213,7 @@ nothing to commit, working tree clean
 - 使用 `git submodule status` 可以查看子模块状态
 
 ```bash
-(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git submodule status
+git submodule status
 5f909c49bcd823965058ec2562c80a9ddac98880 10-xhs-download (heads/main)
 ```
 
