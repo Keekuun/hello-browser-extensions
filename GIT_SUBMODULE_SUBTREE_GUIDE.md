@@ -145,3 +145,81 @@ git add .
 git commit -m "Restore 10-xhs-download directory"
 git push
 ```
+
+## 六、实际操作记录
+
+### 使用 Submodule 管理 10-xhs-download 的实际操作
+
+#### 1. 准备工作
+- 已在 GitHub 上创建了独立的 `xhs-download` 仓库
+- 原 `10-xhs-download` 目录的内容已推送到新仓库
+
+#### 2. 在主仓库中添加子模块
+
+```bash
+# 查看当前 Git 状态
+(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        deleted:    10-xhs-download/.github/workflows/release.yml
+        deleted:    10-xhs-download/.github/workflows/submit.yml
+        deleted:    10-xhs-download/.gitignore
+        # ... 其他被删除的文件 ...
+
+# 提交删除操作
+(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git commit -am "Remove 10-xhs-download directory"
+[main 2d3d8cd] Remove 10-xhs-download directory
+ 18 files changed, 7803 deletions(-)
+ delete mode 100644 10-xhs-download/.github/workflows/release.yml
+ delete mode 100644 10-xhs-download/.github/workflows/submit.yml
+ delete mode 100644 10-xhs-download/.gitignore
+ # ... 其他删除的文件 ...
+
+# 添加子模块
+(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git submodule add https://github.com/Keekuun/xhs-download.git 10-xhs-download
+Cloning into 'D:/code/github/hello-browser-extensions/10-xhs-download'...
+remote: Enumerating objects: 23, done.
+remote: Counting objects: 100% (23/23), done.
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 23 (delta 1), reused 23 (delta 1), pack-reused 0 (from 0)
+Receiving objects: 100% (23/23), 1.03 MiB | 1.12 MiB/s, done.
+Resolving deltas: 100% (1/1), done.
+
+# 查看 Git 状态确认子模块已添加
+(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+```
+
+#### 3. 子模块配置文件
+
+子模块添加后，自动创建了 `.gitmodules` 文件，内容如下：
+
+```ini
+[submodule "10-xhs-download"]
+	path = 10-xhs-download
+	url = https://github.com/Keekuun/xhs-download.git
+```
+
+#### 4. 确认子模块已正确添加
+
+- 目录结构中 `10-xhs-download` 已恢复，但现在作为子模块管理
+- 使用 `git submodule status` 可以查看子模块状态
+
+```bash
+(TraeAI-4) D:\code\github\hello-browser-extensions [0:0] $ git submodule status
+5f909c49bcd823965058ec2562c80a9ddac98880 10-xhs-download (heads/main)
+```
+
+### 注意事项
+
+1. 成功将 `10-xhs-download` 目录转换为子模块管理
+2. 子模块指向独立的 GitHub 仓库 `https://github.com/Keekuun/xhs-download.git`
+3. 主仓库现在只存储子模块的引用，实际代码存储在独立仓库中
+4. 后续对子模块的修改需要在子模块目录内进行 Git 操作，并在主仓库中提交子模块引用的更新
