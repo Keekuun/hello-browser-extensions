@@ -1,4 +1,5 @@
 import React from "react"
+import logo from "./assets/icon.svg"
 
 function IndexPopup() {
   return (
@@ -8,7 +9,8 @@ function IndexPopup() {
         width: 300,
         fontFamily: "Arial, sans-serif"
       }}>
-      <h2 style={{ marginBottom: 16, color: "#333" }}>
+      <h2 style={{ marginBottom: 16, color: "#333", display: "flex", alignItems: "center" }}>
+        <img src={logo} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />
         小红书图片下载器
       </h2>
       
@@ -59,7 +61,7 @@ function IndexPopup() {
       </div>
       
       <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #eee", color: "#999", fontSize: 12 }}>
-        <p>© 2025 小红书图片下载器</p>
+        <p>© jeek 小红书图片下载器</p>
       </div>
     </div>
   )

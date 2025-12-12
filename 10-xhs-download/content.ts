@@ -1,11 +1,23 @@
 // 检测并处理图片swiper列表
 
+// 定义消息类型接口
+interface DownloadMessage {
+  url?: string;
+  filename?: string;
+  images?: string[];
+  postTitle?: string;
+}
+
 class XhsDownload {
   private downloadButton: HTMLButtonElement | null = null
   private toastContainer: HTMLDivElement | null = null
+  private observer: MutationObserver | null = null
+  private contextMenuAdded: boolean = false
 
   constructor() {
     this.init()
+    // 监听页面卸载事件，清理资源
+    window.addEventListener('beforeunload', () => this.cleanup())
   }
 
   private init() {
@@ -20,9 +32,38 @@ class XhsDownload {
     this.setupContextMenu()
   }
 
+  // 清理资源，防止内存泄漏
+  private cleanup() {
+    // 断开MutationObserver
+    if (this.observer) {
+      this.observer.disconnect()
+      this.observer = null
+    }
+
+    // 移除右键菜单事件监听
+    document.removeEventListener('contextmenu', this.handleContextMenu)
+
+    // 移除下载按钮
+    if (this.downloadButton && this.downloadButton.parentElement) {
+      this.downloadButton.parentElement.removeChild(this.downloadButton)
+      this.downloadButton = null
+    }
+
+    // 移除toast容器
+    if (this.toastContainer && this.toastContainer.parentElement) {
+      this.toastContainer.parentElement.removeChild(this.toastContainer)
+      this.toastContainer = null
+    }
+  }
+
   // 设置DOM观察者，检测swiper列表的出现
   private setupObserver() {
-    const observer = new MutationObserver((mutations) => {
+    // 避免重复创建观察者
+    if (this.observer) {
+      return
+    }
+
+    this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList') {
           this.detectSwiperList()
@@ -30,7 +71,7 @@ class XhsDownload {
       })
     })
 
-    observer.observe(document.body, {
+    this.observer.observe(document.body, {
       childList: true,
       subtree: true
     })
@@ -157,20 +198,20 @@ class XhsDownload {
     titleElement = document.querySelector('#detail-title')
     
     // 获取标题文本，如果没有标题则尝试获取正文内容
-    let rawTitle = ''
+    let extractedTitle = ''
     if (titleElement) {
-      rawTitle = titleElement.textContent?.trim() || ''
+      extractedTitle = titleElement.textContent?.trim() || ''
     } else {
       // 尝试获取正文内容作为备选
       const contentElement = document.querySelector('#detail-desc')
       if (contentElement) {
         // 只使用正文前20个字符作为标题
-        rawTitle = contentElement.textContent?.trim().substring(0, 20) || ''
+        extractedTitle = contentElement.textContent?.trim().substring(0, 20) || ''
       }
     }
     
     // 清理标题，去除Chrome不允许的特殊字符
-    let title = rawTitle
+    let sanitizedTitle = extractedTitle
       // 移除Chrome downloads API不允许的特殊字符：\ / : * ? " < > |
       .replace(/[\\/:*?"<>|]/g, '_')
       // 移除多余的下划线
@@ -181,14 +222,52 @@ class XhsDownload {
       .trim()
     
     // 如果标题为空，使用默认值
-    return title || 'xhs-post'
+    return sanitizedTitle || 'xhs-post'
+  }
+
+  // 获取图片扩展名（正确处理URL中的查询参数）
+  private getImageExtension(url: string): string {
+    let ext = 'jpg'
+    try {
+      const urlObj = new URL(url)
+      const pathname = urlObj.pathname
+      ext = pathname.split('.').pop()?.split('?')[0] || 'jpg'
+    } catch (e) {
+      // 如果URL解析失败，回退到简单方法
+      ext = url.split('.').pop()?.split('?')[0] || 'jpg'
+    }
+    // 限制扩展名长度，防止恶意URL
+    return ext.slice(0, 5)
+  }
+
+  // 发送消息到background并处理响应
+  private sendMessageToBackground(action: string, data: DownloadMessage): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({
+        action,
+        ...data
+      }, (response) => {
+        if (response) {
+          resolve(response)
+        } else {
+          console.error('下载请求发送失败: 未收到响应')
+          resolve({ success: false, error: '未收到响应' })
+        }
+      })
+    })
+  }
+
+  // 生成单张图片的文件名
+  private generateSingleImageFilename(postTitle: string, imgUrl: string): string {
+    const ext = this.getImageExtension(imgUrl)
+    return `${postTitle}.${ext}`
   }
 
   // 下载所有图片
   private async downloadAllImages() {
     const images = this.getAllImagesFromSwiper()
     if (images.length === 0) {
-      alert('没有找到图片')
+      this.showToast('没有找到图片', 'error')
       return
     }
 
@@ -200,68 +279,44 @@ class XhsDownload {
       // 如果只有一张图片，直接下载
       if (images.length === 1) {
         const imgUrl = images[0]
-        // 获取图片扩展名（正确处理URL中的查询参数）
-        let ext = 'jpg'
-        try {
-          const urlObj = new URL(imgUrl)
-          const pathname = urlObj.pathname
-          ext = pathname.split('.').pop()?.split('?')[0] || 'jpg'
-        } catch (e) {
-          // 如果URL解析失败，回退到简单方法
-          ext = imgUrl.split('.').pop()?.split('?')[0] || 'jpg'
-        }
-        // 限制扩展名长度，防止恶意URL
-        ext = ext.slice(0, 5)
-        const filename = `${postTitle}.${ext}`
+        const filename = this.generateSingleImageFilename(postTitle, imgUrl)
         
         // 发送消息到background进行下载
-        chrome.runtime.sendMessage({
-          action: 'downloadImage',
+        const response = await this.sendMessageToBackground('downloadImage', {
           url: imgUrl,
           filename: filename
-        }, (response) => {
-          if (response) {
-            if (response.success) {
-              this.showToast('图片下载请求已发送', 'success')
-            } else {
-              console.error('下载请求发送失败:', response.error)
-              if (response.error.includes('正在下载')) {
-                this.showToast('该图片正在下载中', 'info')
-              } else {
-                this.showToast('下载请求发送失败', 'error')
-              }
-            }
+        })
+
+        if (response.success) {
+          this.showToast('图片下载请求已发送', 'success')
+        } else {
+          console.error('下载请求发送失败:', response.error)
+          if (response.error?.includes('正在下载')) {
+            this.showToast('该图片正在下载中', 'info')
           } else {
-            console.error('下载请求发送失败: 未收到响应')
             this.showToast('下载请求发送失败', 'error')
           }
-        })
+        }
       } else {
         // 多张图片，使用zip打包下载
         console.log(`找到 ${images.length} 张图片，正在发送到后台打包下载...`)
         
         // 发送消息到background进行下载
-        chrome.runtime.sendMessage({
-          action: 'downloadImages',
+        const response = await this.sendMessageToBackground('downloadImages', {
           images: images,
           postTitle: postTitle
-        }, (response) => {
-          if (response) {
-            if (response.success) {
-              this.showToast('图片下载请求已发送', 'success')
-            } else {
-              console.error('下载请求发送失败:', response.error)
-              if (response.error.includes('正在下载')) {
-                this.showToast('该图片集正在下载中', 'info')
-              } else {
-                this.showToast('下载请求发送失败', 'error')
-              }
-            }
+        })
+
+        if (response.success) {
+          this.showToast('图片下载请求已发送', 'success')
+        } else {
+          console.error('下载请求发送失败:', response.error)
+          if (response.error?.includes('正在下载')) {
+            this.showToast('该图片集正在下载中', 'info')
           } else {
-            console.error('下载请求发送失败: 未收到响应')
             this.showToast('下载请求发送失败', 'error')
           }
-        })
+        }
       }
     } catch (error) {
       console.error('下载失败:', error)
@@ -271,8 +326,8 @@ class XhsDownload {
 
   // 获取swiper中的所有图片
   private getAllImagesFromSwiper(): string[] {
-    const images = []
-    const swiperSlides = document.querySelectorAll('.swiper-slide img')
+    const images: string[] = []
+    const swiperSlides = document.querySelectorAll<HTMLImageElement>('.swiper-slide img')
     
     swiperSlides.forEach((img) => {
       let src = img.src || img.getAttribute('data-src') || img.getAttribute('data-original')
@@ -317,34 +372,28 @@ class XhsDownload {
   }
 
   // 下载单张图片
-  private downloadImage(url: string, filename: string) {
+  private async downloadImage(url: string, filename: string) {
     this.showToast('正在准备下载...', 'info')
     try {
       // 去除水印
       const noWatermarkUrl = this.removeWatermark(url)
       
       // 发送消息到background进行下载
-      chrome.runtime.sendMessage({
-        action: 'downloadImage',
+      const response = await this.sendMessageToBackground('downloadImage', {
         url: noWatermarkUrl,
         filename: filename
-      }, (response) => {
-        if (response) {
-          if (response.success) {
-            this.showToast('图片下载请求已发送', 'success')
-          } else {
-            console.error('下载请求发送失败:', response.error)
-            if (response.error.includes('正在下载')) {
-              this.showToast('该图片正在下载中', 'info')
-            } else {
-              this.showToast('下载请求发送失败', 'error')
-            }
-          }
+      })
+
+      if (response.success) {
+        this.showToast('图片下载请求已发送', 'success')
+      } else {
+        console.error('下载请求发送失败:', response.error)
+        if (response.error?.includes('正在下载')) {
+          this.showToast('该图片正在下载中', 'info')
         } else {
-          console.error('下载请求发送失败: 未收到响应')
           this.showToast('下载请求发送失败', 'error')
         }
-      })
+      }
     } catch (error) {
       console.error('下载图片失败:', error)
       this.showToast('下载请求发送失败', 'error')
@@ -353,20 +402,31 @@ class XhsDownload {
 
   // 设置右键菜单
   private setupContextMenu() {
-    document.addEventListener('contextmenu', (e) => {
+    // 避免重复添加事件监听
+    if (this.contextMenuAdded) {
+      return
+    }
+
+    // 使用箭头函数绑定this，确保在handleContextMenu中this指向正确
+    this.handleContextMenu = (e) => {
       // 检查是否点击了图片
       const target = e.target as HTMLElement
       if (target.tagName === 'IMG') {
         // 延迟执行，确保浏览器默认菜单已创建
-        // 增加延迟时间到50ms，确保菜单完全创建
         setTimeout(() => this.modifyContextMenu(), 50)
       }
-    })
+    }
+
+    document.addEventListener('contextmenu', this.handleContextMenu)
+    this.contextMenuAdded = true
   }
+
+  // 右键菜单事件处理函数
+  private handleContextMenu: ((e: MouseEvent) => void) | null = null
 
   // 修改右键菜单，添加下载按钮
   private modifyContextMenu() {
-    const contextMenu = document.querySelector('.context-menu-container')
+    const contextMenu = document.querySelector<HTMLElement>('.context-menu-container')
     if (!contextMenu) return
 
     // 检查是否已经添加了下载按钮
@@ -398,26 +458,14 @@ class XhsDownload {
 
     // 添加点击事件
     menuItem.addEventListener('click', () => {
-      const activeImg = document.querySelector('.swiper-slide-active img')
+      const activeImg = document.querySelector<HTMLImageElement>('.swiper-slide-active img')
       if (activeImg) {
         const src = activeImg.src || activeImg.getAttribute('data-src') || activeImg.getAttribute('data-original')
           if (src) {
-            // 获取图片扩展名（正确处理URL中的查询参数）
-            let ext = 'jpg'
-            try {
-              const urlObj = new URL(src)
-              const pathname = urlObj.pathname
-              ext = pathname.split('.').pop()?.split('?')[0] || 'jpg'
-            } catch (e) {
-              // 如果URL解析失败，回退到简单方法
-              ext = src.split('.').pop()?.split('?')[0] || 'jpg'
-            }
-            // 限制扩展名长度，防止恶意URL
-            ext = ext.slice(0, 5)
             const postTitle = this.getPostTitle()
             console.log('postTitle', postTitle)
-            // 单张图片下载时直接使用帖子标题作为文件名
-            const filename = `${postTitle}.${ext}`
+            // 使用生成的文件名进行下载
+            const filename = this.generateSingleImageFilename(postTitle, src)
             this.downloadImage(src, filename)
           }
       }

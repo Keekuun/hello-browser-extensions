@@ -49,6 +49,11 @@
 4. 点击按钮即可自动下载当前帖子中的所有图片
 5. 支持右键菜单下载：在图片上右键点击，选择"✨下载图片"选项
 
+## 界面预览
+
+![xhs-download界面截图1](./assets/screenshot_2025-12-12_10-23-30.png)
+![xhs-download界面截图2](./assets/screenshot_2025_12-12_10-18-23.png)
+
 ## 技术栈
 
 - [Plasmo](https://docs.plasmo.com/) - 浏览器扩展开发框架

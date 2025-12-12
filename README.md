@@ -48,5 +48,10 @@
 
 1. [Plasmo All](./09-plasmo-all/README.md) - 使用 Plasmo 框架开发的全功能扩展示例
 
+
+### 应用案例
+1. [QLabel Extension](./08-qlabel-extension/README.md) - 一个用于辅助图像对比的浏览器扩展程序。
+2. [小红书图片下载器](./10-xhs-download/README.md) - 一个用于小红书网站的浏览器扩展，可以方便地下载帖子中的图片，支持去水印功能。
+
 ### 深入指南
 1. [更进一步](./guide.md)
